@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AquaMind — Greater Tunis Flood Watch</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#031F2D;--sf:#0A2D3D;--ink:#E4F1F1;--mut:#93B1BB;--ln:#1B4A62;--ac:#32B79B;--ac2:#6DB0DC;--red:#E5484D;box-sizing:border-box}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.45 "IBM Plex Sans",system-ui,sans-serif;overflow:hidden}
+#map{position:fixed;inset:0}
+h2,h3,h4{font-family:Montserrat,sans-serif;margin:0}
+header{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:calc(8px + env(safe-area-inset-top,0px)) 14px 8px;background:rgba(3,31,45,.92);backdrop-filter:blur(6px)}
+.brand{font:700 15px Montserrat,sans-serif;letter-spacing:.06em}.brand small{display:block;font:400 12px "IBM Plex Sans";color:var(--mut);letter-spacing:0}
+#wx{flex:1;font-size:13px;color:var(--mut);min-width:180px}
+.seg{display:flex;border:1px solid var(--ln);border-radius:8px;overflow:hidden}.seg button{background:none;border:0;color:var(--ink);padding:7px 14px;font:500 13px "IBM Plex Sans";cursor:pointer}.seg button[aria-pressed=true]{background:var(--ac);color:#031F2D;font-weight:600}
+.b{background:var(--sf);color:var(--ink);border:1px solid var(--ln);border-radius:8px;padding:8px 14px;font:500 14px "IBM Plex Sans";cursor:pointer}.b.p{background:var(--ac);color:#031F2D;border:0;font-weight:600}.b.red{background:var(--red);color:#fff;border:0;font-weight:600}
+button:focus-visible,textarea:focus-visible{outline:3px solid var(--ac2);outline-offset:2px}
+#ops{position:fixed;z-index:4;top:calc(58px + env(safe-area-inset-top,0px));right:10px;bottom:10px;width:min(390px,calc(100% - 20px));overflow:auto;background:rgba(10,45,61,.95);border:1px solid var(--ln);border-radius:14px;padding:14px;display:none}
+body[data-mode=ops] #ops{display:block}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}.kpi div{background:var(--bg);border-radius:10px;padding:8px;text-align:center}.kpi b{display:block;font:700 20px Montserrat,sans-serif}.kpi span{font-size:11px;color:var(--mut)}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:10px 0}
+h3{font-size:14px;margin-top:14px}h4{font-size:13px;margin:10px 0 4px;color:var(--mut)}
+.nrow{display:grid;grid-template-columns:1fr auto;gap:2px 8px;width:100%;text-align:start;background:none;border:0;border-bottom:1px solid var(--ln);color:var(--ink);padding:8px 2px;cursor:pointer;font:inherit}.nrow small{display:block;color:var(--mut);font-size:12px}
+.chip{font:600 11px "IBM Plex Sans";font-style:normal;color:#031F2D;padding:2px 8px;border-radius:99px;align-self:start}
+.bar{grid-column:1/-1;height:5px;background:var(--bg);border-radius:3px;overflow:hidden}.bar b{display:block;height:100%;transition:width .6s}
+.it{border-inline-start:4px solid var(--c);background:var(--bg);border-radius:0 10px 10px 0;margin:8px 0;padding:8px 10px}.it .ih{display:flex;justify-content:space-between;width:100%;background:none;border:0;color:var(--ink);font:inherit;cursor:pointer;padding:0;text-align:start}.it time,.sub,.note{color:var(--mut);font-size:12px}
+.it img,.it video{width:100%;border-radius:8px;margin-top:8px}.it ul{margin:0;padding-inline-start:18px;font-size:13px}.thumbs{display:flex;gap:6px;flex-wrap:wrap}.thumbs img{width:72px;height:72px;object-fit:cover;border-radius:8px;margin:0}
+#fab{position:fixed;z-index:4;left:50%;transform:translateX(-50%);bottom:calc(22px + env(safe-area-inset-bottom,0px));padding:14px 26px;font-size:16px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+#banner{position:fixed;z-index:5;top:calc(62px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:var(--sf);border:1px solid var(--red);border-radius:12px;padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:calc(100% - 20px)}
+#sheet{position:fixed;z-index:6;left:10px;bottom:10px;width:min(420px,calc(100% - 20px));max-height:calc(100% - 80px);overflow:auto;background:var(--sf);border:1px solid var(--ln);border-radius:14px;padding:16px}
+#sheet textarea{width:100%;min-height:90px;background:var(--bg);color:var(--ink);border:1px solid var(--ln);border-radius:8px;padding:10px;font:inherit;margin-top:10px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.chips button{background:var(--bg);color:var(--ink);border:1px solid var(--ln);border-radius:99px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}.chips button[aria-pressed=true]{background:var(--ac);color:#031F2D;border-color:var(--ac);font-weight:600}
+.x{background:none;border:0;color:var(--ink);font-size:24px;cursor:pointer}
+.node{width:36px;height:36px;border-radius:50%;background:var(--bg);color:#fff;border:4px solid var(--ac);font:700 11px Montserrat,sans-serif;cursor:pointer;padding:0}
+.pin{width:22px;height:22px;border-radius:50%;background:var(--c);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5);cursor:pointer;padding:0}
+#toast{position:fixed;z-index:9;top:calc(64px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:var(--sf);border:2px solid var(--ac);border-radius:10px;padding:10px 16px;max-width:calc(100% - 20px);display:none}
+dialog{background:var(--sf);color:var(--ink);border:1px solid var(--ln);border-radius:14px;padding:14px;width:min(560px,94vw)}dialog::backdrop{background:rgba(0,0,0,.6)}dialog video{width:100%;border-radius:10px;background:#000}
+[hidden]{display:none!important}
+@media(max-width:760px){#ops{top:auto;height:48vh;left:10px;right:10px;width:auto}body[data-mode=ops] #fab{display:none}}
+</style>
+</head>
+<body data-mode="report">
+<div id="map"></div>
+<header>
+  <div class="brand">AQUAMIND<small>Greater Tunis flood watch</small></div>
+  <div id="wx"></div>
+  <div class="seg" id="mode" role="group" aria-label="Mode"><button data-m="report" aria-pressed="true">Report</button><button data-m="ops" aria-pressed="false">Operations</button></div>
+</header>
+<aside id="ops" aria-label="Operations panel">
+  <div class="kpi" id="kpi"></div>
+  <h3>Monitoring points</h3><div id="nodes"></div>
+  <div class="row"><h3 style="margin:0">Alerts and reports</h3><button class="b" id="storm">Simulate storm</button></div>
+  <div id="feed"></div>
+  <p class="note">Rainfall is live from Open-Meteo. Water levels and camera frames are simulated until the field hardware is connected.</p>
+</aside>
+<div id="banner" hidden></div>
+<button class="b red" id="fab">Report a problem</button>
+<section id="sheet" hidden aria-labelledby="st">
+  <div class="row" style="margin-top:0"><h2 id="st"></h2><button class="x" id="sx" aria-label="Close">×</button></div>
+  <div data-step="1"><p class="note" id="loc"></p><div class="chips" id="types"></div><div class="chips" id="sev"></div><textarea id="desc" placeholder="What is happening? Water depth, people at risk, vehicles trapped…"></textarea></div>
+  <div data-step="2"><p class="note">A photo or a short video helps the control room confirm the problem.</p><div class="row"><label class="b">Attach photos<input id="files" type="file" accept="image/*" multiple hidden></label><button class="b" id="opencam">Open camera</button></div><div id="thumbs" class="thumbs"></div></div>
+  <div data-step="3"><div id="sum"></div><p class="note">In danger? Call 198 (Protection Civile) or 190 (SAMU).</p></div>
+  <div class="row"><button class="b" id="back">Back</button><button class="b p" id="next"></button></div>
+</section>
+<dialog id="cam"><video id="cv" playsinline muted autoplay></video><div class="row"><button class="b p" id="shot">Capture photo</button><button class="b" id="rec">Record video</button><button class="b" id="camx">Done</button></div></dialog>
+<div id="toast" role="status"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js"></script>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const RISK=["Normal","Watch","Warning","Critical"],COL=["#32B79B","#E8B931","#F07C2B","#E5484D"],SEV=["","Minor","Serious","Life-threatening"],TYPES=["Flooding","Blocked drain","Road cut off","Accident","Other"];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])),hm=t=>new Date(t).toTimeString().slice(0,5);
+const dist=(a,b)=>{const r=Math.PI/180,x=(b.lon-a.lon)*r*Math.cos((a.lat+b.lat)*r/2),y=(b.lat-a.lat)*r;return Math.hypot(x,y)*6371e3};
+// Monitoring points (proposed placement in flood-prone areas of Greater Tunis)
+const NODES=[["Lac 2 outfall",36.835,10.27,90],["Ennasr / Ariana",36.865,10.16,100],["Manouba centre",36.81,10.095,110],["Sijoumi basin",36.79,10.136,120],["Ettadhamen",36.835,10.1,100],["Ben Arous",36.753,10.23,110],["Mégrine",36.77,10.233,90],["Oued Méliane",36.72,10.29,130]].map(([name,lat,lon,thr],i)=>({id:"N"+(i+1),name,lat,lon,thr,L:14+i,pL:14+i,real:0,f3:0,boost:0,rain:0,eta:Infinity,risk:0,stormy:i>0&&i<5}));
+let reports=[],alerts=[],storm=false,openId=null,ready=false,placing=false,pin=null,pm=null,step=1,draft,VID={},feedDirty=1,nm=[],rm=[],wxOK=null;
+try{reports=JSON.parse(localStorage.getItem("aq_reports")||"[]")}catch(e){}
+const save=()=>{try{localStorage.setItem("aq_reports",JSON.stringify(reports))}catch(e){toast("Storage is full. This report is kept for this session only.",2)}};
+addEventListener("storage",e=>{if(e.key==="aq_reports"){try{reports=JSON.parse(e.newValue||"[]")}catch(x){}feedDirty=1;draw()}});
+let tt;function toast(m,k){const t=$("#toast");t.textContent=m;t.style.borderColor=COL[k||0];t.style.display="block";clearTimeout(tt);tt=setTimeout(()=>t.style.display="none",4500)}
+// ---- Map (3D terrain + buildings)
+const map=new maplibregl.Map({container:"map",style:"https://tiles.openfreemap.org/styles/liberty",center:[10.19,36.81],zoom:11.4,pitch:62,bearing:-18,maxPitch:80});
+map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"bottom-left");
+function waterGJ(){return{type:"FeatureCollection",features:NODES.map(n=>{const pts=[];for(let a=0;a<=24;a++){const t=a/24*6.2832;pts.push([n.lon+Math.cos(t)*300/(111320*Math.cos(n.lat*Math.PI/180)),n.lat+Math.sin(t)*300/111320])}return{type:"Feature",properties:{c:COL[n.risk],h:n.L*2},geometry:{type:"Polygon",coordinates:[pts]}}})}}
+map.on("load",()=>{
+ map.addSource("dem",{type:"raster-dem",tiles:["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],encoding:"terrarium",tileSize:256,maxzoom:14,attribution:"Elevation: Mapzen / AWS"});
+ map.setTerrain({source:"dem",exaggeration:2});
+ try{if(!map.getStyle().layers.some(l=>l.type==="fill-extrusion"))map.addLayer({id:"b3d",type:"fill-extrusion",source:"openmaptiles","source-layer":"building",minzoom:14,paint:{"fill-extrusion-color":"#9fb4bc","fill-extrusion-height":["coalesce",["get","render_height"],8],"fill-extrusion-base":["coalesce",["get","render_min_height"],0],"fill-extrusion-opacity":.85}})}catch(e){}
+ map.addSource("water",{type:"geojson",data:waterGJ()});
+ map.addLayer({id:"water3d",type:"fill-extrusion",source:"water",paint:{"fill-extrusion-color":["get","c"],"fill-extrusion-height":["get","h"],"fill-extrusion-opacity":.78}});
+ ready=true;draw()});
+map.on("click",e=>{if(placing)setPin(e.lngLat.lat,e.lngLat.lng,"tap",null)});
+// ---- Live rain (Open-Meteo) + simulated level sensors
+async function loadWx(){try{const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${NODES.map(n=>n.lat).join()}&longitude=${NODES.map(n=>n.lon).join()}&current=precipitation&hourly=precipitation&forecast_hours=3&timezone=auto`);if(!r.ok)throw 0;const j=await r.json();(Array.isArray(j)?j:[j]).forEach((x,i)=>{NODES[i].real=x.current.precipitation||0;NODES[i].f3=(x.hourly.precipitation||[]).reduce((a,b)=>a+(b||0),0)});wxOK=true}catch(e){wxOK=false}draw()}
+const acts=(k,n)=>k>=3?[`Dispatch Protection Civile pumping and rescue units to ${n.name}`,"Close the nearest road or underpass and divert traffic","Send an SMS / push alert to residents within 500 m","Activate pumping stations and open retention basins","Alert ONAS and the municipal crisis cell"]:k==2?["Pre-position pump trucks within 15 minutes","Clear grates and culverts upstream","Brief municipal crews and traffic police","Raise sensor sampling to 1-minute readings"]:["Keep monitoring and review the 3-hour forecast","Inspect drains before the rain peak"];
+function snap(n){const c=document.createElement("canvas");c.width=320;c.height=180;const x=c.getContext("2d"),g=x.createLinearGradient(0,0,0,180);g.addColorStop(0,"#44525a");g.addColorStop(1,"#1d2a30");x.fillStyle=g;x.fillRect(0,0,320,180);const h=Math.min(1,n.L/n.thr)*120;x.fillStyle="rgba(58,134,184,.85)";x.fillRect(0,180-h,320,h);x.fillStyle="#fff";x.font="12px sans-serif";x.fillText(`CAM ${n.id} auto-capture · ${n.name}`,8,16);x.fillText(`level ${Math.round(n.L)} cm · rain ${Math.round(n.rain)} mm/h · ${new Date().toTimeString().slice(0,8)}`,8,32);x.fillText("simulated frame",8,172);return c.toDataURL("image/jpeg",.6)}
+function raise(n,k){alerts.unshift({id:"A"+Date.now()+n.id,kind:"alert",node:n.id,lat:n.lat,lon:n.lon,risk:k,t:Date.now(),img:snap(n),status:"New",acts:acts(k,n)});toast(`${RISK[k]}: ${n.name}. Camera captured, control room alerted.`,k);feedDirty=1}
+function tick(){NODES.forEach(n=>{n.boost=storm&&n.stormy?Math.min(50,n.boost+4):Math.max(0,n.boost-5);const rain=n.real+n.boost;n.pL=n.L;n.L=clamp(n.L+rain*.035-.2-n.L*.004+(Math.random()-.5)*.1,8,n.thr*1.5);
+ const d=n.L-n.pL,r=n.L/n.thr;n.eta=d>.05?(n.thr-n.L)/d:Infinity;n.rain=rain;let k=0;if(r>=.4||rain>=5||n.f3>=10)k=1;if(r>=.65||rain>=15)k=2;if(r>=.9||(n.eta<20&&rain>=20))k=3;if(k>n.risk&&k>=2)raise(n,k);n.risk=k});draw()}
+// ---- Credibility + advice
+const near=p=>NODES.reduce((a,n)=>dist(n,p)<dist(a,p)?n:a);
+function cred(r){let s=10;const w=["Report received"],n=near(r),d=dist(n,r);
+ if(r.photos.length||r.hasVideo){s+=25;w.push("Photo or video evidence +25")}if(r.hasVideo){s+=10;w.push("Video +10")}
+ if(r.src==="gps"&&r.acc<50){s+=20;w.push("GPS fix under 50 m +20")}else if(r.src==="gps"){s+=10;w.push("GPS fix +10")}else{s+=5;w.push("Pin placed by hand +5")}
+ if(d<2500&&r.type!=="Accident"){if(n.risk>=2){s+=25;w.push(`${n.name} sensor at ${RISK[n.risk]} +25`)}else if(n.risk==1){s+=10;w.push(`${n.name} sensor at Watch +10`)}}
+ const o=reports.filter(x=>x.id!==r.id&&Date.now()-x.t<36e5&&dist(x,r)<400).length;if(o){s+=15;w.push(`${o} other report(s) within 400 m +15`)}
+ if(n.real>.1&&d<5000){s+=5;w.push("Rain confirmed by weather data +5")}
+ return{s:Math.min(100,s),w}}
+function advise(r){const n=near(r),d=dist(n,r),a=[];if(r.type==="Accident")return["Call SAMU 190 / Police 197 and dispatch the nearest unit","Divert traffic and warn drivers of standing water on the route"];
+ if(d<2500&&n.risk>=2)a.push(`Nearest sensor (${n.name}, ${(d/1000).toFixed(1)} km) is at ${RISK[n.risk]}${isFinite(n.eta)?`, overflow in about ${Math.round(n.eta)} min`:""}`);
+ return a.concat(acts(Math.max(n.risk,r.sev>=3?3:r.sev==2?2:1),n))}
+// ---- Rendering
+const btns=(id,l)=>`<div class="row">${l.map(s=>`<button class="b" data-s="${id}|${s}">${s}</button>`).join("")}</div>`;
+function alertHTML(a){const n=NODES.find(x=>x.id===a.node),o=openId===a.id;return`<article class="it" style="--c:${COL[a.risk]}"><button class="ih" data-o="${a.id}"><b>${RISK[a.risk]} · ${n.name}</b><time>${hm(a.t)}</time></button><div class="sub">Sensor alert · camera auto-capture · ${a.status}</div>${o?`<img src="${a.img}" alt="Auto-captured camera frame">${isFinite(n.eta)&&n.risk>=2?`<p>Overflow expected in about ${Math.round(n.eta)} min at the current rate.</p>`:""}<h4>Suggested actions</h4><ul>${a.acts.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>${btns(a.id,["Acknowledged","Dispatched","Resolved"])}`:""}</article>`}
+function repHTML(r){const c=cred(r),o=openId===r.id;return`<article class="it" style="--c:${COL[r.sev]}"><button class="ih" data-o="${r.id}"><b>${esc(r.type)} · ${SEV[r.sev]}</b><time>${hm(r.t)}</time></button><div class="sub">Credibility ${c.s}% · ${r.status}</div>${o?`<p>${esc(r.desc||"No description.")}</p><div class="thumbs">${r.photos.map(p=>`<img src="${p}" alt="Report photo">`).join("")}</div>${VID[r.id]?`<video src="${VID[r.id]}" controls playsinline></video>`:r.hasVideo?`<p class="note">A video was recorded on the reporter's device.</p>`:""}<h4>Why this score</h4><ul>${c.w.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><h4>Suggested response</h4><ul>${advise(r).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>${btns(r.id,["Verified","Dispatched","Resolved"])}`:""}</article>`}
+function draw(){
+ NODES.forEach((n,i)=>{if(!nm[i]){const el=document.createElement("button");el.className="node";el.setAttribute("aria-label",n.name);el.onclick=()=>{setMode("ops");map.flyTo({center:[n.lon,n.lat],zoom:14.5,pitch:62})};nm[i]=new maplibregl.Marker({element:el}).setLngLat([n.lon,n.lat]).addTo(map)}
+  const el=nm[i].getElement();el.style.borderColor=COL[n.risk];el.textContent=Math.round(n.L)});
+ if(ready)map.getSource("water").setData(waterGJ());
+ const mx=Math.max(...NODES.map(n=>n.rain)),f3=Math.max(...NODES.map(n=>n.f3));
+ $("#wx").textContent=wxOK===false?"Weather feed unavailable. Open this page in your browser with internet access.":`Rain now up to ${mx.toFixed(1)} mm/h · next 3 h up to ${f3.toFixed(1)} mm · ${new Date().toTimeString().slice(0,5)}`;
+ $("#kpi").innerHTML=[[NODES.filter(n=>n.risk>=2).length,"At risk"],[NODES.filter(n=>n.risk==3).length,"Critical"],[reports.filter(r=>r.status!=="Resolved").length,"Open reports"],[alerts.filter(a=>a.status==="New").length,"New alerts"]].map(a=>`<div><b>${a[0]}</b><span>${a[1]}</span></div>`).join("");
+ $("#nodes").innerHTML=NODES.map(n=>`<button class="nrow" data-n="${n.id}"><span><b>${n.name}</b><small>${n.rain.toFixed(0)} mm/h · ${Math.round(n.L)}/${n.thr} cm${isFinite(n.eta)&&n.risk>=2?` · overflow ~${Math.round(n.eta)} min`:""}</small></span><i class="chip" style="background:${COL[n.risk]}">${RISK[n.risk]}</i><div class="bar"><b style="width:${Math.min(100,n.L/n.thr*100)}%;background:${COL[n.risk]}"></b></div></button>`).join("");
+ if(feedDirty){feedDirty=0;const L=[...alerts,...reports].sort((a,b)=>b.t-a.t);$("#feed").innerHTML=L.map(x=>x.kind==="alert"?alertHTML(x):repHTML(x)).join("")||`<p class="note">No alerts or reports yet.</p>`;
+  rm.forEach(m=>m.remove());rm=reports.map(r=>{const el=document.createElement("button");el.className="pin";el.style.setProperty("--c",COL[r.sev]);el.setAttribute("aria-label","Report: "+r.type);el.onclick=()=>{setMode("ops");openId=r.id;feedDirty=1;draw()};return new maplibregl.Marker({element:el}).setLngLat([r.lon,r.lat]).addTo(map)})}}
+$("#nodes").onclick=e=>{const b=e.target.closest("[data-n]");if(!b)return;const n=NODES.find(x=>x.id===b.dataset.n);map.flyTo({center:[n.lon,n.lat],zoom:14.5,pitch:62})};
+$("#feed").onclick=e=>{const o=e.target.closest("[data-o]"),s=e.target.closest("[data-s]");
+ if(o){openId=openId===o.dataset.o?null:o.dataset.o;const it=[...alerts,...reports].find(x=>x.id===openId);if(it)map.flyTo({center:[it.lon,it.lat],zoom:15,pitch:62});feedDirty=1;draw()}
+ if(s){const[id,st]=s.dataset.s.split("|"),it=[...alerts,...reports].find(x=>x.id===id);if(it){it.status=st;if(it.kind==="report")save();feedDirty=1;draw()}}};
+$("#storm").onclick=()=>{storm=!storm;$("#storm").textContent=storm?"Stop storm":"Simulate storm"};
+function setMode(m){document.body.dataset.mode=m;$$("#mode button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===m))}
+$$("#mode button").forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+// ---- Report wizard
+function startReport(){placing=true;$("#fab").hidden=true;const bn=$("#banner");bn.hidden=false;bn.innerHTML=`<span>Tap the map to drop a pin</span><button class="b p" id="bgps">Use my location</button><button class="b" id="bx">Cancel</button>`;
+ $("#bx").onclick=()=>{placing=false;bn.hidden=true;$("#fab").hidden=false};
+ $("#bgps").onclick=()=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>setPin(p.coords.latitude,p.coords.longitude,"gps",p.coords.accuracy),()=>toast("Location unavailable. Tap the map instead.",2),{enableHighAccuracy:true,timeout:10000}):toast("Location unavailable. Tap the map instead.",2)}
+function setPin(lat,lon,src,acc){placing=false;$("#banner").hidden=true;pin={lat,lon,src,acc};
+ if(!pm){pm=new maplibregl.Marker({color:"#E5484D",draggable:true}).setLngLat([lon,lat]).addTo(map);pm.on("dragend",()=>{const p=pm.getLngLat();pin={lat:p.lat,lon:p.lng,src:"tap",acc:null};locTxt()})}else pm.setLngLat([lon,lat]);
+ map.flyTo({center:[lon,lat],zoom:Math.max(map.getZoom(),15.5),pitch:60});draft={type:"Flooding",sev:2,photos:[],vurl:null};step=1;$("#desc").value="";$("#sheet").hidden=false;chips();thumbs();locTxt();showStep()}
+const locTxt=()=>$("#loc").textContent=`${pin.lat.toFixed(5)}, ${pin.lon.toFixed(5)} · ${pin.src==="gps"?"GPS ±"+Math.round(pin.acc)+" m":"placed by hand"}. Drag the pin to adjust.`;
+function chips(){$("#types").innerHTML=TYPES.map(t=>`<button data-t="${t}" aria-pressed="${draft.type===t}">${t}</button>`).join("");$("#sev").innerHTML=[1,2,3].map(s=>`<button data-v="${s}" aria-pressed="${draft.sev===s}">${SEV[s]}</button>`).join("")}
+$("#types").onclick=e=>{const b=e.target.closest("[data-t]");if(b){draft.type=b.dataset.t;chips()}};$("#sev").onclick=e=>{const b=e.target.closest("[data-v]");if(b){draft.sev=+b.dataset.v;chips()}};
+function thumbs(){$("#thumbs").innerHTML=draft.photos.map(p=>`<img src="${p}" alt="Attached photo">`).join("")+(draft.vurl?`<video src="${draft.vurl}" style="width:120px;border-radius:8px" controls playsinline></video>`:"")}
+function addPhoto(u){if(draft.photos.length<4){draft.photos.push(u);thumbs()}}
+$("#files").onchange=async e=>{for(const f of e.target.files){try{const b=await createImageBitmap(f),k=Math.min(1,800/b.width),c=document.createElement("canvas");c.width=b.width*k;c.height=b.height*k;c.getContext("2d").drawImage(b,0,0,c.width,c.height);addPhoto(c.toDataURL("image/jpeg",.7))}catch(x){}}e.target.value=""};
+let stream,rec,chunks;
+$("#opencam").onclick=async()=>{try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});$("#cv").srcObject=stream;$("#cam").showModal()}catch(e){toast("Camera unavailable. Allow access and use https, or attach photos instead.",2)}};
+$("#shot").onclick=()=>{const v=$("#cv"),w=v.videoWidth||800,h=v.videoHeight||600,k=Math.min(1,800/w),c=document.createElement("canvas");c.width=w*k;c.height=h*k;c.getContext("2d").drawImage(v,0,0,c.width,c.height);addPhoto(c.toDataURL("image/jpeg",.7))};
+$("#rec").onclick=()=>{if(rec&&rec.state==="recording"){rec.stop();return}chunks=[];rec=new MediaRecorder(stream);rec.ondataavailable=e=>chunks.push(e.data);rec.onstop=()=>{draft.vurl=URL.createObjectURL(new Blob(chunks,{type:rec.mimeType}));$("#rec").textContent="Record video";thumbs()};rec.start();$("#rec").textContent="Stop (10 s max)";setTimeout(()=>rec.state==="recording"&&rec.stop(),10000)};
+$("#camx").onclick=()=>$("#cam").close();$("#cam").onclose=()=>{if(rec&&rec.state==="recording")rec.stop();stream&&stream.getTracks().forEach(t=>t.stop())};
+function mk(){return{id:"R"+Date.now(),kind:"report",t:Date.now(),lat:pin.lat,lon:pin.lon,src:pin.src,acc:pin.acc,type:draft.type,sev:draft.sev,desc:$("#desc").value.trim(),photos:draft.photos.slice(),hasVideo:!!draft.vurl,status:"New"}}
+function showStep(){$$("#sheet [data-step]").forEach(d=>d.hidden=+d.dataset.step!==step);$("#st").textContent=["","1/3 What happened","2/3 Evidence","3/3 Review and send"][step];$("#back").hidden=step===1;$("#next").textContent=step===3?"Send report":"Next";
+ if(step===3){const r=mk(),c=cred(r);$("#sum").innerHTML=`<p><b>${esc(r.type)}</b> · ${SEV[r.sev]}<br>${esc(r.desc||"No description")}<br>${r.photos.length} photo(s)${r.hasVideo?" · 1 video":""}</p><h4>Credibility estimate: ${c.s}%</h4><ul class="note">${c.w.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`}}
+$("#back").onclick=()=>{step--;showStep()};
+$("#next").onclick=()=>{if(step<3){step++;showStep();return}const r=mk();if(draft.vurl)VID[r.id]=draft.vurl;reports.unshift(r);save();closeSheet();toast("Report sent to the control room.",0);feedDirty=1;draw()};
+function closeSheet(){$("#sheet").hidden=true;$("#fab").hidden=false;if(pm){pm.remove();pm=null}}
+$("#sx").onclick=closeSheet;$("#fab").onclick=startReport;
+loadWx();setInterval(loadWx,300000);setInterval(tick,2000);draw();
+</script>
+</body>
+</html>
